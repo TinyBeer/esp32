@@ -9,5 +9,4 @@ ServoHandler::ServoHandler(int pin)
 void ServoHandler::write(int angle)
 {
     _servo.write(angle);
-    delay(15);
 }
