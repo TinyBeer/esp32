@@ -14,12 +14,36 @@ void WiFiConnector::begin()
     // 尝试从保存的配置中连接 WiFi
     if (!connectFromSavedConfigs())
     {
-        // 启动 AP 模式
-        WiFi.softAP(apSSID, apPassword);
-        Serial.print("AP IP address: ");
+        enableConfigPage();
+    }
+    else
+    {
+        Serial.print("IP address: ");
         Serial.println(WiFi.softAPIP());
     }
+}
 
+void WiFiConnector::reset()
+{
+    preferences.begin("wifi_config", false);
+    preferences.clear();
+    preferences.end();
+}
+
+void WiFiConnector::loop()
+{
+    // 处理 DNS 请求
+    dnsServer.processNextRequest();
+    // 处理 Web 服务器请求
+    server.handleClient();
+}
+
+void WiFiConnector::enableConfigPage()
+{
+    // 启动 AP 模式
+    WiFi.softAP(apSSID, apPassword);
+    Serial.print("AP IP address: ");
+    Serial.println(WiFi.softAPIP());
     // 启动 DNS 服务器
     dnsServer.start(53, "*", WiFi.softAPIP());
 
@@ -38,12 +62,10 @@ void WiFiConnector::begin()
     Serial.println("Web server started");
 }
 
-void WiFiConnector::loop()
+void WiFiConnector::disableConfigPage()
 {
-    // 处理 DNS 请求
-    dnsServer.processNextRequest();
-    // 处理 Web 服务器请求
-    server.handleClient();
+    dnsServer.stop();
+    server.stop();
 }
 
 bool WiFiConnector::connectFromSavedConfigs()

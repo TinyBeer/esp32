@@ -11,6 +11,7 @@ class WiFiConnector
 public:
     WiFiConnector(const char *apSSID, const char *apPassword);
     void begin();
+    void reset();
     void loop();
 
 private:
@@ -20,6 +21,8 @@ private:
     WebServer server;
     Preferences preferences;
 
+    void enableConfigPage();
+    void disableConfigPage();
     bool connectFromSavedConfigs();
     void saveNewWiFiConfig(const String &ssid, const String &password);
     String generateConfigPage(int networkCount);

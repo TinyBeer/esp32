@@ -3,5 +3,5 @@
 
 // 定义软 AP 的 SSID 和密码
 const char *APSSID = "ESP32_Config_AP";
-const char *APPassword = "config1234";
+const char *APPassword = "";
 #endif
