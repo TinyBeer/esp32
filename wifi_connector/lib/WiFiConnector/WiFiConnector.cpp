@@ -1,7 +1,15 @@
 #include "WiFiConnector.h"
 
 WiFiConnector::WiFiConnector(const char *apSSID, const char *apPassword)
-    : apSSID(apSSID), apPassword(apPassword), server(80) {}
+    : apSSID(apSSID), apPassword(apPassword), server(80)
+{
+    pinMode(Pin_WiFi_LED, OUTPUT);
+    digitalWrite(Pin_WiFi_LED, HIGH);
+    timer = timerBegin(0, 80, true);
+    timerAttachInterrupt(timer, []()
+                         { digitalWrite(Pin_WiFi_LED, !digitalRead(Pin_WiFi_LED)); }, true);
+    timerAlarmWrite(timer, flush_interval_ms * 1000, true);
+}
 
 void WiFiConnector::begin()
 {
@@ -32,14 +40,23 @@ void WiFiConnector::reset()
 
 void WiFiConnector::loop()
 {
-    // 处理 DNS 请求
-    dnsServer.processNextRequest();
-    // 处理 Web 服务器请求
-    server.handleClient();
+    if (isConfigMode)
+    {
+        // 处理 DNS 请求
+        dnsServer.processNextRequest();
+        // 处理 Web 服务器请求
+        server.handleClient();
+    }
+}
+
+String WiFiConnector::ip()
+{
+    return WiFi.localIP().toString();
 }
 
 void WiFiConnector::enableConfigPage()
 {
+    Serial.println("CONFIG MODE");
     // 启动 AP 模式
     WiFi.softAP(apSSID, apPassword);
     Serial.print("AP IP address: ");
@@ -60,12 +77,19 @@ void WiFiConnector::enableConfigPage()
     // 启动 Web 服务器
     server.begin();
     Serial.println("Web server started");
+
+    isConfigMode = true;
+    timerAlarmEnable(timer);
 }
 
 void WiFiConnector::disableConfigPage()
 {
     dnsServer.stop();
     server.stop();
+    WiFi.softAPdisconnect(true);
+    isConfigMode = false;
+    timerAlarmDisable(timer);
+    digitalWrite(Pin_WiFi_LED, LOW);
 }
 
 bool WiFiConnector::connectFromSavedConfigs()
@@ -89,7 +113,8 @@ bool WiFiConnector::connectFromSavedConfigs()
             }
             if (WiFi.status() == WL_CONNECTED)
             {
-                Serial.println("Connected to saved WiFi: " + ssid);
+                Serial.printf("Connected to saved WiFi: %s, IP: %s\n", ssid, WiFi.localIP());
+                digitalWrite(Pin_WiFi_LED, LOW);
                 preferences.end();
                 return true;
             }
@@ -197,7 +222,11 @@ void WiFiConnector::handleConnect()
         if (WiFi.status() == WL_CONNECTED)
         {
             saveNewWiFiConfig(targetSSID, targetPassword);
-            server.send(200, "text/plain", "Connected to " + targetSSID);
+            String ip = WiFi.localIP().toString();
+            server.send(200, "text/plain", "Connected to " + targetSSID + " IP: " + ip + "\r\nExit Config Mode in 5 second");
+            delay(5000);
+            Serial.printf("Connected to WiFi: %s IP: %s\n", targetSSID, ip.c_str());
+            disableConfigPage();
         }
         else
         {

@@ -6,6 +6,8 @@
 #include <WebServer.h>
 #include <Preferences.h>
 
+const int Pin_WiFi_LED = 2;
+const uint64_t flush_interval_ms = 500;
 class WiFiConnector
 {
 public:
@@ -13,6 +15,7 @@ public:
     void begin();
     void reset();
     void loop();
+    String ip();
 
 private:
     const char *apSSID;
@@ -20,6 +23,8 @@ private:
     DNSServer dnsServer;
     WebServer server;
     Preferences preferences;
+    bool isConfigMode;
+    hw_timer_t *timer;
 
     void enableConfigPage();
     void disableConfigPage();
