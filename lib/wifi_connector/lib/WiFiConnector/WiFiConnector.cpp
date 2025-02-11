@@ -18,7 +18,7 @@ void WiFiConnector::begin()
     // 初始化 Preferences
     preferences.begin("wifi_config", false);
     preferences.end();
-
+    delay(2000);
     // 尝试从保存的配置中连接 WiFi
     if (!connectFromSavedConfigs())
     {
@@ -40,7 +40,7 @@ void WiFiConnector::reset()
 
 void WiFiConnector::loop()
 {
-    if (isConfigMode)
+    if (configMode)
     {
         // 处理 DNS 请求
         dnsServer.processNextRequest();
@@ -52,6 +52,11 @@ void WiFiConnector::loop()
 String WiFiConnector::ip()
 {
     return WiFi.localIP().toString();
+}
+
+bool WiFiConnector::isConfigMode()
+{
+    return configMode;
 }
 
 void WiFiConnector::enableConfigPage()
@@ -78,7 +83,7 @@ void WiFiConnector::enableConfigPage()
     server.begin();
     Serial.println("Web server started");
 
-    isConfigMode = true;
+    configMode = true;
     timerAlarmEnable(timer);
 }
 
@@ -87,7 +92,7 @@ void WiFiConnector::disableConfigPage()
     dnsServer.stop();
     server.stop();
     WiFi.softAPdisconnect(true);
-    isConfigMode = false;
+    configMode = false;
     timerAlarmDisable(timer);
     digitalWrite(Pin_WiFi_LED, LOW);
 }
@@ -102,8 +107,10 @@ bool WiFiConnector::connectFromSavedConfigs()
         String pwdKey = "password_" + String(i);
         String ssid = preferences.getString(ssidKey.c_str(), "");
         String password = preferences.getString(pwdKey.c_str(), "");
-        if (!ssid.isEmpty() && !password.isEmpty())
+        // if (!ssid.isEmpty() && !password.isEmpty())
+        if (!ssid.isEmpty())
         {
+            Serial.printf("try to connet ssid[%s] with password[%s]...\n", ssid, password);
             WiFi.begin(ssid.c_str(), password.c_str());
             int attempts = 0;
             while (WiFi.status() != WL_CONNECTED && attempts < 10)

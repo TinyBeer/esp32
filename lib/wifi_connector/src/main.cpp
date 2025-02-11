@@ -6,10 +6,16 @@ WiFiConnector wifiConnector(APSSID, APPassword);
 
 void setup()
 {
+  wifiConnector.reset();
   wifiConnector.begin();
 }
 
 void loop()
 {
   wifiConnector.loop();
+  if (!wifiConnector.isConfigMode())
+  {
+    Serial.println(wifiConnector.ip());
+    delay(1000);
+  }
 }
