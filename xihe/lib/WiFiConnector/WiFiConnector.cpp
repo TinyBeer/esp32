@@ -26,6 +26,7 @@ void WiFiConnector::begin()
     }
     else
     {
+        connected = true;
         Serial.print("IP address: ");
         Serial.println(WiFi.softAPIP());
     }
@@ -59,6 +60,11 @@ bool WiFiConnector::isConfigMode()
     return configMode;
 }
 
+bool WiFiConnector::isConnected()
+{
+    return connected;
+}
+
 void WiFiConnector::enableConfigPage()
 {
     Serial.println("CONFIG MODE");
@@ -84,6 +90,7 @@ void WiFiConnector::enableConfigPage()
     Serial.println("Web server started");
 
     configMode = true;
+    connected = false;
     timerAlarmEnable(timer);
 }
 
@@ -228,6 +235,7 @@ void WiFiConnector::handleConnect()
 
         if (WiFi.status() == WL_CONNECTED)
         {
+            connected = true;
             saveNewWiFiConfig(targetSSID, targetPassword);
             String ip = WiFi.localIP().toString();
             server.send(200, "text/plain", "Connected to " + targetSSID + " IP: " + ip + "\r\nExit Config Mode in 5 second");

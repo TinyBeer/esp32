@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include "Config.h"
-#include "OLED_Handler.h"
+#include "OLEDHandler.h"
 #include "img.h"
 
 OLED_Handler oled(/* clock=*/PIN_I2C_SCL, /* data=*/PIN_I2C_SDA, /* reset=*/OLED_RESET);

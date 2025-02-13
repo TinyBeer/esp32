@@ -17,6 +17,7 @@ public:
     void loop();
     String ip();
     bool isConfigMode();
+    bool isConnected();
 
 private:
     const char *apSSID;
@@ -24,7 +25,8 @@ private:
     DNSServer dnsServer;
     WebServer server;
     Preferences preferences;
-    bool configMode;
+    bool configMode = false;
+    bool connected;
     hw_timer_t *timer;
 
     void enableConfigPage();

@@ -1,5 +1,5 @@
-#ifndef OLED_Handler_H
-#define OLED_Handler_H
+#ifndef OLEDHandler_H
+#define OLEDHandler_H
 #include <U8g2lib.h>
 class OLED_Handler
 {
