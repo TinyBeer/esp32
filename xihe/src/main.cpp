@@ -1,99 +1,97 @@
 #include "Config.h"
-#include "LEDHandler.h"
-#include "WiFiConnector.h"
 #include "OTAHandler.h"
-#include "OLEDHandler.h"
 #include "ServoHandler.h"
-#include <PubSubClient.h>
+#include <esp_sleep.h>
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEScan.h>
+#include <BLEAdvertisedDevice.h>
 
-LEDHandler ledHandler(PIN_LED);
-WiFiConnector wifiConnector(APSSID, APPassword); // 创建 WiFiConnector 实例
-OTAHandler otaHandler;                           // 创建 OTAHandler 对象
-OLED_Handler oledHandler(/* clock=*/PIN_I2C_SCL, /* data=*/PIN_I2C_SDA, /* reset=*/OLED_RESET);
+// 转换为 128 位 UUID
+BLEUUID SERVICE_UUID = BLEUUID((uint16_t)SERVICE_UUID_16);
+BLEUUID CHARACTERISTIC_UUID_READ = BLEUUID((uint16_t)CHARACTERISTIC_UUID_16_READ);
+BLEScan *pBLEScan;               // 扫描结果
+std::string targetDeviceAddress; // 目标设备地址
+bool targetDeviceFound = false;
+class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks // 扫描回调函数
+{
+    void onResult(BLEAdvertisedDevice advertisedDevice)
+    {
+        Serial.println(advertisedDevice.haveServiceUUID());
+        Serial.println(advertisedDevice.isAdvertisingService(SERVICE_UUID));
+        if (advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(SERVICE_UUID))
+        {
+            targetDeviceFound = true;
+            targetDeviceAddress = advertisedDevice.getAddress().toString();
+            pBLEScan->stop(); // 找到目标设备，停止扫描
+        }
+    }
+};
+
+OTAHandler otaHandler;                    // 创建 OTAHandler 对象
 ServoHandler servoHandler(Pin_Servo_PWM); // 创建一个舵机对象
-bool screenUpdated = false;
-
-WiFiClient espClient;
-PubSubClient client(espClient);
 
 void msgHandler(String msg)
 {
     if (msg == "on")
     {
-        ledHandler.on();
+        servoHandler.write(35);
+        delay(1000);
         servoHandler.write(90);
+        delay(1000);
     }
     else if (msg == "off")
     {
-        ledHandler.off();
-        servoHandler.write(180);
+        servoHandler.write(145);
+        delay(1000);
+        servoHandler.write(90);
+        delay(1000);
     }
     else
     {
-        Serial.printf("unsupported msg:%s\r\n", msg);
-    }
-}
-
-void callback(char *topic, byte *payload, unsigned int length)
-{
-    String msg;
-    for (int i = 0; i < length; i++)
-    {
-        msg += (char)payload[i];
-    }
-    Serial.printf("Message arrived [%s]: %s\r\n", topic, msg);
-
-    if (msgHandler)
-    {
-        msgHandler(msg);
-    }
-}
-
-void reconnect()
-{
-    while (!client.connected())
-    {
-        Serial.print("Attempting MQTT connection...");
-        if (client.connect(MQ_CLIENT_ID, "", ""))
-        {
-            Serial.println("connected");
-            client.subscribe(MQ_TOPIC);
-        }
-        else
-        {
-            Serial.print("failed, rc=");
-            Serial.print(client.state());
-            Serial.println(" try again in 1 seconds");
-            delay(1000);
-        }
+        // keep status
     }
 }
 
 void setup()
 {
-    wifiConnector.begin();
-    otaHandler.begin();
-    client.setServer(MQ_SERVER, MQ_PORT);
-    client.setCallback(callback);
+    pinMode(PIN_LED, OUTPUT);
+    digitalWrite(PIN_LED, HIGH);
+    esp_sleep_enable_timer_wakeup(5 * 1000000);
+    BLEDevice::init("");
+    pBLEScan = BLEDevice::getScan();
+    pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
+    pBLEScan->setActiveScan(true);
+    pBLEScan->start(5); // 扫描 5 秒
+
+    if (targetDeviceFound)
+    {
+        BLEClient *pClient = BLEDevice::createClient();
+        BLEAddress targetAddress(targetDeviceAddress);
+        if (pClient->connect(targetAddress))
+        {
+            BLERemoteService *pRemoteService = pClient->getService(SERVICE_UUID);
+            if (pRemoteService != nullptr)
+            {
+                BLERemoteCharacteristic *pRemoteCharacteristic = pRemoteService->getCharacteristic(CHARACTERISTIC_UUID_READ);
+                if (pRemoteCharacteristic != nullptr)
+                {
+                    if (pRemoteCharacteristic->canRead())
+                    {
+                        std::string value = pRemoteCharacteristic->readValue();
+                        msgHandler(String(value.c_str()));
+                    }
+                }
+            }
+            pClient->disconnect();
+        }
+    }
+    delay(500);
+    digitalWrite(PIN_LED, HIGH);
+    esp_deep_sleep_start();
 }
 
 void loop()
 {
-    wifiConnector.loop();
-    if (wifiConnector.isConnected())
-    {
-        // 处理 OTA 事件
-        otaHandler.handle();
-        if (!screenUpdated)
-        {
-            screenUpdated = true;
-            oledHandler.writeString(String("IP Adress:"), 1);
-            oledHandler.writeString(wifiConnector.ip(), 2);
-        }
-        if (!client.connected())
-        {
-            reconnect();
-        }
-        client.loop();
-    }
+    // otaHandler.handle();
 }

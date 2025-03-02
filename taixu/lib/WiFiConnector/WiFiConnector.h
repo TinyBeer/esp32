@@ -18,6 +18,7 @@ public:
     String ip();
     bool isConfigMode();
     bool isConnected();
+    void setAction(String str);
 
 private:
     const char *apSSID;
@@ -28,14 +29,15 @@ private:
     bool configMode = false;
     bool connected;
     hw_timer_t *timer;
+    String action = "keep";
 
     void enableConfigPage();
     void disableConfigPage();
     bool connectFromSavedConfigs();
     void saveNewWiFiConfig(const String &ssid, const String &password);
-    String generateConfigPage(int networkCount);
+    String generateConfigPage();
     void handleRoot();
-    void handleScan();
+    void handleAction();
     void handleConnect();
     void handleNotFound();
 };

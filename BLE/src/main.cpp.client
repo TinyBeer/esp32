@@ -1,0 +1,108 @@
+#include <Arduino.h>
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEScan.h>
+#include <BLEAdvertisedDevice.h>
+
+// 服务 UUID 和特征 UUID
+// 16 位短 UUID
+#define SERVICE_UUID_16 0x9001
+#define CHARACTERISTIC_UUID_16_READ 0x9002
+// 转换为 128 位 UUID
+BLEUUID SERVICE_UUID = BLEUUID((uint16_t)SERVICE_UUID_16);
+BLEUUID CHARACTERISTIC_UUID_READ = BLEUUID((uint16_t)CHARACTERISTIC_UUID_16_READ);
+
+// 扫描结果
+BLEScan *pBLEScan;
+// 目标设备地址
+std::string targetDeviceAddress;
+// 标记是否找到目标设备
+bool targetDeviceFound = false;
+// 扫描回调函数
+class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
+{
+  void onResult(BLEAdvertisedDevice advertisedDevice)
+  {
+    Serial.println(advertisedDevice.haveServiceUUID());
+    Serial.println(advertisedDevice.isAdvertisingService(SERVICE_UUID));
+    if (advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(SERVICE_UUID))
+    {
+      targetDeviceFound = true;
+      targetDeviceAddress = advertisedDevice.getAddress().toString();
+      pBLEScan->stop(); // 找到目标设备，停止扫描
+      Serial.println("Target device found, scanning stopped.");
+    }
+  }
+};
+
+void setup()
+{
+  Serial.begin(115200);
+  BLEDevice::init("");
+
+  pBLEScan = BLEDevice::getScan();
+  pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
+  pBLEScan->setActiveScan(true);
+  pBLEScan->start(5); // 扫描 5 秒
+
+  if (targetDeviceFound)
+  {
+    // 创建 BLE 客户端
+    BLEClient *pClient = BLEDevice::createClient();
+    Serial.println("Connecting to target device...");
+
+    // 根据设备地址创建 BLEAddress 对象
+    BLEAddress targetAddress(targetDeviceAddress);
+    if (pClient->connect(targetAddress))
+    {
+      Serial.println("Connected to target device.");
+
+      // 获取指定服务
+      BLERemoteService *pRemoteService = pClient->getService(SERVICE_UUID);
+      if (pRemoteService != nullptr)
+      {
+        Serial.println("Service found.");
+
+        // 获取指定特征
+        BLERemoteCharacteristic *pRemoteCharacteristic = pRemoteService->getCharacteristic(CHARACTERISTIC_UUID_READ);
+        if (pRemoteCharacteristic != nullptr)
+        {
+          Serial.println("Characteristic found.");
+          // 这里可以进行特征的读写操作
+          if (pRemoteCharacteristic->canRead())
+          {
+            std::string value = pRemoteCharacteristic->readValue();
+            Serial.print("Characteristic value: ");
+            Serial.println(value.c_str());
+          }
+        }
+        else
+        {
+          Serial.println("Characteristic not found.");
+        }
+      }
+      else
+      {
+        Serial.println("Service not found.");
+      }
+
+      // 断开连接
+      pClient->disconnect();
+      Serial.println("Disconnected from target device.");
+    }
+    else
+    {
+      Serial.println("Failed to connect to target device.");
+    }
+  }
+  else
+  {
+    Serial.println("Target device not found.");
+  }
+}
+
+void loop()
+{
+  Serial.println("hello");
+  delay(2000);
+}

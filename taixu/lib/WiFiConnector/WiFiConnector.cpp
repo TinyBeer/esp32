@@ -19,6 +19,25 @@ void WiFiConnector::begin()
     preferences.begin("wifi_config", false);
     preferences.end();
     delay(2000);
+    // 启动 AP 模式
+    WiFi.softAP(apSSID, apPassword);
+    Serial.print("AP IP address: ");
+    Serial.println(WiFi.softAPIP());
+
+    // 为根路径、扫描请求和连接请求注册处理函数
+    server.on("/", [this]()
+              { this->handleRoot(); });
+    server.on("/action", [this]()
+              { this->handleAction(); });
+    server.on("/connect", [this]()
+              { this->handleConnect(); });
+    server.onNotFound([this]()
+                      { this->handleNotFound(); });
+
+    // 启动 Web 服务器
+    server.begin();
+    Serial.println("Web server started");
+
     // 尝试从保存的配置中连接 WiFi
     if (!connectFromSavedConfigs())
     {
@@ -27,9 +46,9 @@ void WiFiConnector::begin()
     else
     {
         connected = true;
-        Serial.print("IP address: ");
-        Serial.println(WiFi.softAPIP());
     }
+    WiFi.setTxPower(WIFI_POWER_2dBm);
+    WiFi.setSleep(WIFI_PS_MIN_MODEM);
 }
 
 void WiFiConnector::reset()
@@ -45,9 +64,9 @@ void WiFiConnector::loop()
     {
         // 处理 DNS 请求
         dnsServer.processNextRequest();
-        // 处理 Web 服务器请求
-        server.handleClient();
     }
+    // 处理 Web 服务器请求
+    server.handleClient();
 }
 
 String WiFiConnector::ip()
@@ -65,29 +84,16 @@ bool WiFiConnector::isConnected()
     return connected;
 }
 
+void WiFiConnector::setAction(String str)
+{
+    action = str;
+}
+
 void WiFiConnector::enableConfigPage()
 {
     Serial.println("CONFIG MODE");
-    // 启动 AP 模式
-    WiFi.softAP(apSSID, apPassword);
-    Serial.print("AP IP address: ");
-    Serial.println(WiFi.softAPIP());
     // 启动 DNS 服务器
     dnsServer.start(53, "*", WiFi.softAPIP());
-
-    // 为根路径、扫描请求和连接请求注册处理函数
-    server.on("/", [this]()
-              { this->handleRoot(); });
-    server.on("/scan", [this]()
-              { this->handleScan(); });
-    server.on("/connect", [this]()
-              { this->handleConnect(); });
-    server.onNotFound([this]()
-                      { this->handleNotFound(); });
-
-    // 启动 Web 服务器
-    server.begin();
-    Serial.println("Web server started");
 
     configMode = true;
     connected = false;
@@ -96,10 +102,8 @@ void WiFiConnector::enableConfigPage()
 
 void WiFiConnector::disableConfigPage()
 {
-    dnsServer.stop();
-    server.stop();
-    WiFi.softAPdisconnect(true);
     configMode = false;
+    dnsServer.stop();
     timerAlarmDisable(timer);
     digitalWrite(Pin_WiFi_LED, LOW);
 }
@@ -127,7 +131,8 @@ bool WiFiConnector::connectFromSavedConfigs()
             }
             if (WiFi.status() == WL_CONNECTED)
             {
-                Serial.printf("Connected to saved WiFi: %s, IP: %s\n", ssid, WiFi.localIP());
+                Serial.printf("Connected to saved WiFi: %s\nLocal IP: ", ssid);
+                Serial.println(WiFi.localIP());
                 digitalWrite(Pin_WiFi_LED, LOW);
                 preferences.end();
                 return true;
@@ -150,7 +155,7 @@ void WiFiConnector::saveNewWiFiConfig(const String &ssid, const String &password
     preferences.end();
 }
 
-String WiFiConnector::generateConfigPage(int networkCount)
+String WiFiConnector::generateConfigPage()
 {
     String page = "<html>";
     page += "<head>";
@@ -169,12 +174,12 @@ String WiFiConnector::generateConfigPage(int networkCount)
     page += "    border-radius: 5px;";
     page += "    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);";
     page += "}";
-    page += "button, input[type='submit'] {";
+    page += "input {";
     page += "    padding: 10px 20px;";
     page += "    font-size: 1em;";
     page += "    cursor: pointer;";
     page += "}";
-    page += "select, input[type='password'] {";
+    page += "input {";
     page += "    width: 100%;";
     page += "    padding: 10px;";
     page += "    margin-bottom: 15px;";
@@ -186,14 +191,8 @@ String WiFiConnector::generateConfigPage(int networkCount)
     page += "<body>";
     page += "<div>";
     page += "<h1>WiFi Configuration</h1>";
-    page += "<button onclick=\"window.location.href='/scan'\">Refresh Scan</button><br><br>";
     page += "<form method='post' action='/connect'>";
-    page += "Select WiFi: <select name='ssid'>";
-    for (int i = 0; i < networkCount; ++i)
-    {
-        page += "<option value='" + WiFi.SSID(i) + "'>" + WiFi.SSID(i) + "</option>";
-    }
-    page += "</select><br>";
+    page += "SSID: <input type='text' name='ssid'><br>";
     page += "Password: <input type='password' name='password'><br>";
     page += "<input type='submit' value='Connect'>";
     page += "</form>";
@@ -205,15 +204,14 @@ String WiFiConnector::generateConfigPage(int networkCount)
 
 void WiFiConnector::handleRoot()
 {
-    int n = WiFi.scanNetworks();
-    String page = generateConfigPage(n);
+    String page = generateConfigPage();
     server.send(200, "text/html", page);
 }
 
-void WiFiConnector::handleScan()
+void WiFiConnector::handleAction()
 {
-    server.sendHeader("Location", "/", true);
-    server.send(302, "text/plain", "");
+    server.send(200, "text/plain", action);
+    action = "keep";
 }
 
 void WiFiConnector::handleConnect()
