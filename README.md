@@ -5,7 +5,7 @@
 ## TODO 计划
 
 
-- [ ] taixu  mqtt+webserver xihe wifi直连
+- [x] taixu  mqtt+webserver xihe wifi直连
 - [ ] 整理代码
 - [x] xihe 使用ble + deep sleep  测试结果同时开启ble mqtt flash占用过大调试困难  决定使用wifi + deep sleep方式
 - [ ] 红外控收发 遥控器控制码学习

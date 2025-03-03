@@ -41,6 +41,8 @@ void setup()
         delay(1000);
         Serial.println("Connecting to WiFi...");
     }
+    WiFi.setTxPower(WIFI_POWER_2dBm);
+    WiFi.setSleep(true);
     Serial.println("Connected to WiFi");
     Serial.print("IP Adress:");
     Serial.println(WiFi.localIP());
