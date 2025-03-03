@@ -6,14 +6,11 @@
 #define PIN_LED 2
 #define Pin_Servo_PWM 12 // 舵机
 
-// BLE
-#define BLE_Server "Taixu"
-#define BLE_Client "Xihe"
+// WiFi
+#define WIFI_SSID "8hao"
+#define WIFI_PWD "00000000"
 
-// 服务和特征 16 位短 UUID
-#define SERVICE_UUID_16 0x9001
-#define CHARACTERISTIC_UUID_16_READ 0x9002
-
-#define ScanSecond 5
+// 要请求的URL
+#define HTTP_HOST "http://192.168.4.1/action"
 
 #endif
