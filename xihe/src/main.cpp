@@ -1,5 +1,4 @@
 #include "Config.h"
-#include "OTAHandler.h"
 #include "ServoHandler.h"
 #include <esp_sleep.h>
 #include <BLEDevice.h>
@@ -28,7 +27,6 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks // 扫�
     }
 };
 
-OTAHandler otaHandler;                    // 创建 OTAHandler 对象
 ServoHandler servoHandler(Pin_Servo_PWM); // 创建一个舵机对象
 
 void msgHandler(String msg)
@@ -58,11 +56,11 @@ void setup()
     pinMode(PIN_LED, OUTPUT);
     digitalWrite(PIN_LED, HIGH);
     esp_sleep_enable_timer_wakeup(5 * 1000000);
-    BLEDevice::init("");
+    BLEDevice::init(BLE_Client);
     pBLEScan = BLEDevice::getScan();
     pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
     pBLEScan->setActiveScan(true);
-    pBLEScan->start(5); // 扫描 5 秒
+    pBLEScan->start(ScanSecond); // 扫描 5 秒
 
     if (targetDeviceFound)
     {
@@ -93,5 +91,4 @@ void setup()
 
 void loop()
 {
-    // otaHandler.handle();
 }
