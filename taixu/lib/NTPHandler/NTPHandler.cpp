@@ -3,13 +3,13 @@
 NTPHandler::NTPHandler(const char *server, const int sync_second)
     : _sync_interval(sync_second * 1000), timeClient(ntpUDP, server)
 {
-    // 初始化 NTP 客户端
-    timeClient.begin();
-    timeClient.setTimeOffset(28800); // 设置时区偏移量，北京时间为 UTC+8，即 8 * 3600 = 28800 秒
 }
 
 int NTPHandler::getHour()
 {
+    // 初始化 NTP 客户端
+    timeClient.begin();
+    timeClient.setTimeOffset(28800); // 设置时区偏移量，北京时间为 UTC+8，即 8 * 3600 = 28800 秒
     unsigned long currentMillis = millis();
     if (currentMillis - previousMillis >= _sync_interval)
     {

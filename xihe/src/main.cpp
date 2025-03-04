@@ -67,6 +67,7 @@ void setup()
         }
         http.end();
     }
+    digitalWrite(PIN_LED, LOW);
     esp_sleep_enable_timer_wakeup(sleep_second * 1000000);
     esp_deep_sleep_start();
 }

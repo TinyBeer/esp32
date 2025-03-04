@@ -9,6 +9,7 @@ OTAHandler otaHandler;                           // 创建 OTAHandler 对象
 WiFiClient espClient;
 PubSubClient client(espClient);
 NTPHandler ntpHandler("pool.ntp.org", 300);
+int count = 0;
 
 void msgHandler(String msg)
 {
@@ -81,11 +82,15 @@ void loop()
             reconnect();
         }
         client.loop();
-
-        int currentHour = ntpHandler.getHour();
-        Serial.print("current hour: ");
-        Serial.println(currentHour);
-        wifiConnector.setIdle(currentHour >= 10 && currentHour <= 22);
+        count %= 6000;
+        if (count == 0)
+        {
+            int currentHour = ntpHandler.getHour();
+            Serial.print("current hour: ");
+            Serial.println(currentHour);
+            wifiConnector.setIdle(currentHour >= 10 && currentHour <= 22);
+        }
+        count++;
     }
     delay(10);
 }
