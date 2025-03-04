@@ -68,6 +68,7 @@ void setup()
     // otaHandler.begin();
     client.setServer(MQ_SERVER, MQ_PORT);
     client.setCallback(callback);
+    ntpHandler.begin();
 }
 
 void loop()
@@ -88,7 +89,9 @@ void loop()
             int currentHour = ntpHandler.getHour();
             Serial.print("current hour: ");
             Serial.println(currentHour);
-            wifiConnector.setIdle(currentHour >= 10 && currentHour <= 22);
+            wifiConnector.setIdle(currentHour < 7 ||
+                                  (currentHour > 9 && currentHour < 21) ||
+                                  currentHour > 22);
         }
         count++;
     }

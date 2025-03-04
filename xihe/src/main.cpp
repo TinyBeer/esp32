@@ -31,8 +31,9 @@ void msgHandler(String msg)
 
 void setup()
 {
-    pinMode(PIN_LED, OUTPUT);
-    digitalWrite(PIN_LED, HIGH);
+    ledcSetup(LED_PWM_Channel, LED_PWM_Freq, LED_PWM_Resolution);
+    ledcAttachPin(PIN_LED, LED_PWM_Channel);
+    ledcWrite(LED_PWM_Channel, LED_PWM_Brightness_ON);
     Serial.begin(115200);
 
     // 连接WiFi
@@ -67,7 +68,7 @@ void setup()
         }
         http.end();
     }
-    digitalWrite(PIN_LED, LOW);
+    ledcWrite(LED_PWM_Channel, LED_PWM_Brightness_OFF);
     esp_sleep_enable_timer_wakeup(sleep_second * 1000000);
     esp_deep_sleep_start();
 }

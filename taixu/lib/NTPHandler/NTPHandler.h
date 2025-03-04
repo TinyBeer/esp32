@@ -8,6 +8,7 @@ class NTPHandler
 {
 public:
     NTPHandler(const char *server, const int sync_second);
+    void begin();
     int getHour();
 
 private:
