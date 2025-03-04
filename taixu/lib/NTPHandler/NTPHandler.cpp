@@ -1,7 +1,7 @@
 #include "NTPHandler.h"
 
-NTPHandler::NTPHandler(const char *server, const int sync_interval)
-    : _sync_interval(sync_interval), timeClient(ntpUDP, server)
+NTPHandler::NTPHandler(const char *server, const int sync_second)
+    : _sync_interval(sync_second * 1000), timeClient(ntpUDP, server)
 {
     // 初始化 NTP 客户端
     timeClient.begin();

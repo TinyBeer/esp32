@@ -1,22 +1,14 @@
 #include "Config.h"
 #include "WiFiConnector.h"
 #include "OTAHandler.h"
+#include "NTPHandler.h"
 #include <PubSubClient.h>
-#include <NTPClient.h>
-#include <WiFiUdp.h>
 
 WiFiConnector wifiConnector(APSSID, APPassword); // 创建 WiFiConnector 实例
 OTAHandler otaHandler;                           // 创建 OTAHandler 对象
 WiFiClient espClient;
 PubSubClient client(espClient);
-
-// NTP 服务器设置
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org");
-const int syncInterval = 300000; // 同步间隔 5分钟
-
-// 记录上一次 HTTP 请求的时间
-unsigned long previousMillis = 0;
+NTPHandler ntpHandler("pool.ntp.org", 300);
 
 void msgHandler(String msg)
 {
@@ -75,10 +67,6 @@ void setup()
     // otaHandler.begin();
     client.setServer(MQ_SERVER, MQ_PORT);
     client.setCallback(callback);
-
-    // 初始化 NTP 客户端
-    timeClient.begin();
-    timeClient.setTimeOffset(28800); // 设置时区偏移量，北京时间为 UTC+8，即 8 * 3600 = 28800 秒
 }
 
 void loop()
@@ -94,20 +82,10 @@ void loop()
         }
         client.loop();
 
-        unsigned long currentMillis = millis();
-        if (currentMillis - previousMillis >= syncInterval)
-        {
-            previousMillis = currentMillis;
-
-            // 更新 NTP 时间
-            timeClient.update();
-            unsigned long epochTime = timeClient.getEpochTime();
-            struct tm *ptm = gmtime((time_t *)&epochTime);
-            int currentHour = ptm->tm_hour;
-            Serial.print("current hour: ");
-            Serial.println(currentHour);
-            wifiConnector.setIdle(currentHour >= 10 && currentHour <= 20);
-        }
+        int currentHour = ntpHandler.getHour();
+        Serial.print("current hour: ");
+        Serial.println(currentHour);
+        wifiConnector.setIdle(currentHour >= 10 && currentHour <= 22);
     }
     delay(10);
 }
