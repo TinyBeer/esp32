@@ -19,6 +19,7 @@ public:
     bool isConfigMode();
     bool isConnected();
     void setAction(String str);
+    void setIdle(bool idle);
 
 private:
     const char *apSSID;
@@ -29,6 +30,7 @@ private:
     bool configMode = false;
     bool connected;
     hw_timer_t *timer;
+    bool idle = false;
     String action = "keep";
 
     void enableConfigPage();

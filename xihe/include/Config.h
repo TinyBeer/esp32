@@ -7,8 +7,8 @@
 #define Pin_Servo_PWM 12 // 舵机
 
 // WiFi
-#define WIFI_SSID "8hao"
-#define WIFI_PWD "00000000"
+#define WIFI_SSID "ESP32_Config_AP"
+#define WIFI_PWD ""
 
 // 要请求的URL
 #define HTTP_HOST "http://192.168.4.1/action"

@@ -89,6 +89,11 @@ void WiFiConnector::setAction(String str)
     action = str;
 }
 
+void WiFiConnector::setIdle(bool flag)
+{
+    idle = flag;
+}
+
 void WiFiConnector::enableConfigPage()
 {
     Serial.println("CONFIG MODE");
@@ -211,7 +216,14 @@ void WiFiConnector::handleRoot()
 void WiFiConnector::handleAction()
 {
     server.send(200, "text/plain", action);
-    action = "keep";
+    if (idle)
+    {
+        action = "keep";
+    }
+    else
+    {
+        action = "keep_long";
+    }
 }
 
 void WiFiConnector::handleConnect()
